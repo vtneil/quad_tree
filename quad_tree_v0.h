@@ -7,7 +7,7 @@
 
 constexpr long double SUBDIVIDE_MIN_SIZE = 1;
 
-namespace self {
+namespace s0 {
     struct Point {
         long double x;
         long double y;
@@ -209,7 +209,6 @@ namespace self {
         void clear() {
             delete_all_trees(m_tree_top_left);
             delete_all_trees(m_tree_top_right);
-            delete_all_trees(m_tree_bottom_left);
             delete_all_trees(m_tree_bottom_right);
 
             m_tree_parent = nullptr;
