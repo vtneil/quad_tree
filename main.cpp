@@ -23,7 +23,10 @@ int main() {
     t.insert(new TreeNode<char>(Point(15, 15), 'c'));
     t.insert(new TreeNode<char>(Point(7, 3), 'd'));
 
-    auto k = t.find(Point(1, 10));
+    t.insert(new TreeNode<char>(Point(15, 15), 'c'));
+    t.insert(new TreeNode<char>(Point(7, 3), 'x'));
+
+    auto k = t.find(Point(7, 3));
     f = k.second;
     auto g = f ? k.first->data : 'z';
 
@@ -31,7 +34,8 @@ int main() {
     cout << g << '\n' << f << '\n';
     cout << "Size = " << t.size() << '\n';
 
-    t.clear();
+//    t.clear();
+//    t.insert(new TreeNode<char>(Point(7, 3), 'd'));
 
     k = t.find(Point(1, 10));
     f = k.second;

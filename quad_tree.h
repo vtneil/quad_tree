@@ -211,7 +211,8 @@ namespace self {
             delete_all_trees(m_tree_top_right);
             delete_all_trees(m_tree_bottom_left);
             delete_all_trees(m_tree_bottom_right);
-            delete m_node;
+
+            m_tree_parent = nullptr;
             m_size = 0;
             m_node = nullptr;
             m_tree_top_left = nullptr;
@@ -231,8 +232,6 @@ namespace self {
         if (node == nullptr) return false;
 
         // Out of bound check
-        bool a = in_bound(node->pos);
-
         if (!in_bound(node->pos)) return false;
 
         // Can't perform subdividing anymore (min size) (Insert)
@@ -242,6 +241,7 @@ namespace self {
                 m_node = node;
                 return true;
             }
+            m_node = node;
             return false;
         }
 
@@ -333,7 +333,9 @@ namespace self {
         delete_all_trees(tree->m_tree_top_right);
         delete_all_trees(tree->m_tree_bottom_left);
         delete_all_trees(tree->m_tree_bottom_right);
+
         delete tree;
+//        delete m_node;
     }
 }
 
