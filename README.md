@@ -1,6 +1,6 @@
 # quad_tree
 
-A C++ implementation of QuadTree Data Structure.
+A C++ implementation of QuadTree Data Structure. Old tests and other form of implementations (less performance) can be found in "refs" directory.
 
 ## Class templates
 `T` is a data type;
