@@ -1,21 +1,27 @@
-//#include "quad_tree_0.h"
-#include "quad_tree.hpp"
-#include "ref.cpp"
+//#include "refs/quad_tree_v0.h"
+//#include "refs/quad_tree.hpp"
+//#include "refs/ref.cpp"
+#include "quadtree.h"
+#include "vec2.h"
 #include <iostream>
 #include <vector>
 
-using self::Vec2;
 using std::cout;
 using std::cin;
 
+using namespace qt;
+
 int main() {
-    Vec2<int> pa{-10, 10};
-    Vec2<int> pb{10, -10};
-    int a = 5;
+    Vertex origin{0, 0};
+    Vertex rad{1000, 1000};
 
-    auto c = pa / 3;
+    QuadTree<int> tree{origin, rad, 2};
 
-    cout << c.x << ' ' << c.y;
+    for (int i = -100; i < 100; ++i) {
+        tree.insert(Vertex(i + 50, 400 - i), 2 * i);
+    }
+
+    tree.print_preorder();
 
     return 0;
 }

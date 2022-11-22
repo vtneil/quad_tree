@@ -7,7 +7,7 @@
 
 constexpr long double SUBDIVIDE_MIN_SIZE = 1;
 
-namespace s0 {
+namespace self {
     struct Point {
         long double x;
         long double y;
@@ -50,7 +50,7 @@ namespace s0 {
     };
 
     template<typename T>
-    class QuadTree {
+    class QuadTreeSimple {
         class TreeIterator {
         protected:
             TreeNode<T> *ptr;
@@ -101,15 +101,15 @@ namespace s0 {
 
         TreeNode<T> *m_node;
 
-        QuadTree<T> *m_tree_top_left;
-        QuadTree<T> *m_tree_top_right;
-        QuadTree<T> *m_tree_bottom_left;
-        QuadTree<T> *m_tree_bottom_right;
-        QuadTree<T> *m_tree_parent;
+        QuadTreeSimple<T> *m_tree_top_left;
+        QuadTreeSimple<T> *m_tree_top_right;
+        QuadTreeSimple<T> *m_tree_bottom_left;
+        QuadTreeSimple<T> *m_tree_bottom_right;
+        QuadTreeSimple<T> *m_tree_parent;
 
     public:
-        QuadTree(const Point &top_left, const Point &bottom_right) : m_top_left{top_left},
-                                                                     m_bottom_right{bottom_right} {
+        QuadTreeSimple(const Point &top_left, const Point &bottom_right) : m_top_left{top_left},
+                                                                           m_bottom_right{bottom_right} {
             m_size = 0;
             m_node = nullptr;
             m_tree_top_left = nullptr;
@@ -119,7 +119,7 @@ namespace s0 {
             m_tree_parent = nullptr;
         }
 
-        QuadTree(const QuadTree<T> &other) {
+        QuadTreeSimple(const QuadTreeSimple<T> &other) {
             m_size = other.m_size;
             m_top_left = other.m_top_left;
             m_bottom_right = other.m_bottom_right;
@@ -131,7 +131,7 @@ namespace s0 {
             m_tree_parent = other.m_tree_parent;
         }
 
-        QuadTree() {
+        QuadTreeSimple() {
             m_size = 0;
             m_top_left = {0.0, 1.0};
             m_bottom_right = {1.0, 0.0};
@@ -143,7 +143,7 @@ namespace s0 {
             m_tree_parent = nullptr;
         }
 
-        QuadTree<T> &operator=(QuadTree<T> other) {
+        QuadTreeSimple<T> &operator=(QuadTreeSimple<T> other) {
             std::swap(m_size, other.m_size);
             std::swap(m_top_left, other.m_top_left);
             std::swap(m_bottom_right, other.m_bottom_right);
@@ -153,10 +153,6 @@ namespace s0 {
             std::swap(m_tree_bottom_left, other.m_tree_bottom_left);
             std::swap(m_tree_bottom_right, other.m_tree_bottom_right);
             std::swap(m_tree_parent, other.m_tree_parent);
-        }
-
-        ~QuadTree() {
-            clear();
         }
 
     protected:
@@ -205,28 +201,10 @@ namespace s0 {
             return (point.x >= m_top_left.x && point.x <= m_bottom_right.x
                     && point.y <= m_top_left.y && point.y >= m_bottom_right.y);
         }
-
-        void clear() {
-            delete_all_trees(m_tree_top_left);
-            delete_all_trees(m_tree_top_right);
-            delete_all_trees(m_tree_bottom_right);
-
-            m_tree_parent = nullptr;
-            m_size = 0;
-            m_node = nullptr;
-            m_tree_top_left = nullptr;
-            m_tree_top_right = nullptr;
-            m_tree_bottom_left = nullptr;
-            m_tree_bottom_right = nullptr;
-        }
-
-        QuadTree<T> *copy(QuadTree<T> *, QuadTree<T> *);
-
-        void delete_all_trees(QuadTree<T> *tree);
     };
 
     template<typename T>
-    bool QuadTree<T>::insert_node(TreeNode<T> *node) {
+    bool QuadTreeSimple<T>::insert_node(TreeNode<T> *node) {
         // Invalid node
         if (node == nullptr) return false;
 
@@ -251,13 +229,13 @@ namespace s0 {
             // Top left or bottom left
             if (node->pos.y >= middle.y) {
                 if (m_tree_top_left == nullptr)
-                    m_tree_top_left = new QuadTree<T>(Point(m_top_left), Point(middle));
+                    m_tree_top_left = new QuadTreeSimple<T>(Point(m_top_left), Point(middle));
                 ++m_size;
                 return m_tree_top_left->insert_node(node);
             } else {
                 if (m_tree_bottom_left == nullptr)
-                    m_tree_bottom_left = new QuadTree<T>(Point(m_top_left.x, middle.y),
-                                                         Point(middle.x, m_bottom_right.y));
+                    m_tree_bottom_left = new QuadTreeSimple<T>(Point(m_top_left.x, middle.y),
+                                                               Point(middle.x, m_bottom_right.y));
                 ++m_size;
                 return m_tree_bottom_left->insert_node(node);
             }
@@ -265,14 +243,14 @@ namespace s0 {
             // Top right or bottom right
             if (node->pos.y >= mid_point().y) {
                 if (m_tree_top_right == nullptr)
-                    m_tree_top_right = new QuadTree<T>(Point(middle.x, m_top_left.y),
-                                                       Point(m_bottom_right.x, middle.y));
+                    m_tree_top_right = new QuadTreeSimple<T>(Point(middle.x, m_top_left.y),
+                                                             Point(m_bottom_right.x, middle.y));
                 ++m_size;
                 return m_tree_top_right->insert_node(node);
             } else {
                 if (m_tree_bottom_right == nullptr)
-                    m_tree_bottom_right = new QuadTree<T>(Point(middle),
-                                                          Point(m_bottom_right));
+                    m_tree_bottom_right = new QuadTreeSimple<T>(Point(middle),
+                                                                Point(m_bottom_right));
                 ++m_size;
                 return m_tree_bottom_right->insert_node(node);
             }
@@ -280,7 +258,7 @@ namespace s0 {
     }
 
     template<typename T>
-    TreeNode<T> *QuadTree<T>::find_node(const Point &point) {
+    TreeNode<T> *QuadTreeSimple<T>::find_node(const Point &point) {
         // Out of bound check
         if (!in_bound(point)) return nullptr;
 
@@ -316,25 +294,8 @@ namespace s0 {
     }
 
     template<typename T>
-    bool QuadTree<T>::erase_node(TreeNode<T> *) {
+    bool QuadTreeSimple<T>::erase_node(TreeNode<T> *) {
         return false;
-    }
-
-    template<typename T>
-    QuadTree<T> *QuadTree<T>::copy(QuadTree<T> *src, QuadTree<T> *parent) {
-        return {};
-    }
-
-    template<typename T>
-    void QuadTree<T>::delete_all_trees(QuadTree<T> *tree) {
-        if (tree == nullptr) return;
-        delete_all_trees(tree->m_tree_top_left);
-        delete_all_trees(tree->m_tree_top_right);
-        delete_all_trees(tree->m_tree_bottom_left);
-        delete_all_trees(tree->m_tree_bottom_right);
-
-        delete tree;
-//        delete m_node;
     }
 }
 

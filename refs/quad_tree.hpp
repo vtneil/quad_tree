@@ -1,26 +1,3 @@
-/*
-Copyright (c) 2022 Vivatsathorn Thitasirivit
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
-
 #ifndef QUAD_TREE_QUAD_TREE_HPP
 #define QUAD_TREE_QUAD_TREE_HPP
 
@@ -241,9 +218,35 @@ namespace self {
         }
     };
 
-    // Definition of class QuadTree
-    template<typename T, typename ConstructRect, typename Equal = std::equal_to<T>, typename Double = long double>
-    class QuadTree {
+    // Definition of class Node
+    template<typename T, typename RectT>
+    class Node {
+    public:
+        RectT rect;
+        T data;
+        size_t id;
+
+        Node(size_t id, const T &data) : data{data}, rect{RectT()}, id{id} {}
+
+        Node() : data{T()}, rect{RectT()}, id{0} {}
+
+        bool operator==(const Node &other) const {
+            return id == other.id && data == other.data;
+        }
+    };
+
+    // Definition of class RetrieveRect
+    template<typename NodeT, typename DoubleT>
+    class RetrieveRect {
+    public:
+        Rect<DoubleT> operator()(const NodeT &node) const {
+            return node.rect;
+        }
+    };
+
+    // Definition of class QuadTreeSimple
+    template<typename T, typename ConstructRect, typename Equal = std::equal_to<T>, typename DoubleT = long double>
+    class QuadTreeSimple {
     protected:
         // Maximum number of data per node before trying subdividing, default = 16
         static constexpr const size_t THRESHOLD = size_t(16);
@@ -251,6 +254,7 @@ namespace self {
         // Maximum depth of node level, default = 8
         static constexpr const size_t MAX_DEPTH = size_t(8);
 
+        // Definition of class TreeNode
         class TreeNode {
         public:
             std::unique_ptr<TreeNode> parent;
@@ -259,15 +263,15 @@ namespace self {
         };
 
         size_t m_size;
-        Rect<Double> m_rect;
+        Rect<DoubleT> m_rect;
         std::unique_ptr<TreeNode> m_root;
         ConstructRect m_construct_rect;
         Equal m_equal;
 
     public:
-        explicit QuadTree(const Rect<Double> &rect,
-                          const ConstructRect &construct_rect = ConstructRect(),
-                          const Equal &equal = Equal()) {
+        explicit QuadTreeSimple(const Rect<DoubleT> &rect,
+                                const ConstructRect &construct_rect,
+                                const Equal &equal = Equal()) {
             m_size = 0;
             m_rect = rect;
             m_root = std::unique_ptr<TreeNode>(new TreeNode());
@@ -276,17 +280,27 @@ namespace self {
         }
 
     public:
+        size_t size() {
+            return m_size;
+        }
+
+        std::vector<T> find_rect_intersections(const Rect<DoubleT> &rect) {
+            std::vector<T> ret{};
+            find_rect_intersections(m_root.get(), m_rect, rect, ret);
+            return ret;
+        }
+
         void insert(const T &value) {
             insert_value(m_root.get(), 0, m_rect, value);
         }
 
-        void remove(const T &value) {
-            remove_value(m_root.get(), m_rect, value);
+        bool erase(const T &value) {
+            return remove(m_root.get(), m_rect, value);
         }
 
-        Rect<Double> compute_rect(const Rect<Double> &rect, int quadrant) const {
-            Vec2<Double> origin = rect.top_left();
-            Vec2<Double> child = rect.shape() / 2;
+        Rect<DoubleT> compute_rect(const Rect<DoubleT> &rect, int quadrant) const {
+            Vec2<DoubleT> origin = rect.top_left();
+            Vec2<DoubleT> child = rect.shape() / 2;
 
             switch (quadrant) {
                 case 0:
@@ -294,10 +308,10 @@ namespace self {
                     return {origin, child};
                 case 1:
                     // Top right
-                    return {Vec2<Double>(origin.x + child.x, origin.y), child};
+                    return {Vec2<DoubleT>(origin.x + child.x, origin.y), child};
                 case 2:
                     // Bottom left
-                    return {Vec2<Double>(origin.x, origin.y + child.y), child};
+                    return {Vec2<DoubleT>(origin.x, origin.y + child.y), child};
                 case 3:
                     // Bottom right
                     return {origin + child, child};
@@ -306,8 +320,8 @@ namespace self {
             }
         }
 
-        int quadrant_of(const Rect<Double> &rect, const Rect<Double> &value) const {
-            Vec2<Double> center = rect.center();
+        int quadrant_of(const Rect<DoubleT> &rect, const Rect<DoubleT> &value) const {
+            Vec2<DoubleT> center = rect.center();
             if (value.right() < center.x) {
                 // Top Left
                 if (value.bottom() < center.y)
@@ -336,18 +350,18 @@ namespace self {
             return !static_cast<bool>(node->children[0]);
         }
 
-        void subdivide(TreeNode *node, const Rect<Double> &rect) {
+        void subdivide(TreeNode *node, const Rect<DoubleT> &rect) {
             if (node == nullptr) return;
             if (!is_leaf(node)) return;
 
-            for (auto &child: node->children) {
+            for (std::unique_ptr<TreeNode> &child: node->children) {
                 child = std::unique_ptr<TreeNode>(new TreeNode());
             }
 
             std::vector<T> new_val{};
 
-            for (const auto &value: node->data) {
-                int q = quadrant_of(rect, ConstructRect(value));
+            for (const T &value: node->data) {
+                int q = quadrant_of(rect, m_construct_rect(value));
                 if (q != -1)
                     node->children[q]->data.push_back(value);
                 else
@@ -380,9 +394,9 @@ namespace self {
             return true;
         }
 
-        void insert_value(TreeNode *node, size_t depth, const Rect<Double> &rect, const T &value) {
+        void insert_value(TreeNode *node, size_t depth, const Rect<DoubleT> &rect, const T &value) {
             if (node == nullptr) return;
-            if (!rect.contains(ConstructRect(value))) return;
+            if (!rect.contains(m_construct_rect(value))) return;
             if (is_leaf(node)) {
                 if (depth >= MAX_DEPTH || node->data.size() < THRESHOLD)
                     node->data.push_back(value);
@@ -391,7 +405,7 @@ namespace self {
                     insert_value(node, depth, rect, value);
                 }
             } else {
-                int q = quadrant_of(rect, ConstructRect(value));
+                int q = quadrant_of(rect, m_construct_rect(value));
                 if (q != -1)
                     insert_value(node->children[q].get(),
                                  1 + depth,
@@ -414,21 +428,39 @@ namespace self {
             node->data.pop_back();
         }
 
-        bool remove(TreeNode *node, const Rect<Double> &rect, const T &value) {
+        bool remove(TreeNode *node, const Rect<DoubleT> &rect, const T &value) {
             if (node == nullptr) return false;
-            if (!rect.contains(ConstructRect(value))) return false;
+            if (!rect.contains(m_construct_rect(value))) return false;
 
             if (is_leaf(node)) {
                 remove_value(node, value);
                 return true;
             } else {
-                int q = quadrant_of(rect, ConstructRect(value));
+                int q = quadrant_of(rect, m_construct_rect(value));
                 if (q != -1) {
                     if (remove(node->children[q].get(), compute_rect(rect, q), value))
                         return try_merge(node);
                 } else
                     remove_value(node, value);
                 return false;
+            }
+        }
+
+        void find_rect_intersections(TreeNode *node, const Rect<DoubleT> &rect, const Rect<DoubleT> &query,
+                                     std::vector<T> &ret) const {
+            if (node == nullptr) return;
+            if (!query.intersects(rect)) return;
+
+            for (const T &value: node->data)
+                if (query.intersects(m_construct_rect(value)))
+                    ret.push_back(value);
+
+            if (!is_leaf(node)) {
+                for (int i = 0; i < node->children.size(); ++i) {
+                    Rect<DoubleT> child_rect = compute_rect(rect, i);
+                    if (query.intersects(child_rect))
+                        find_rect_intersections(node->children[i].get(), child_rect, query, ret);
+                }
             }
         }
     };
