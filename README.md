@@ -48,3 +48,13 @@ bool remove(const Vertex &point);
 ```C++
 std::vector<std::pair<Vertex, T>> data_in_region(const Vertex &bottom_left, const Vertex &top_right);
 ```
+
+### Recursively print nodes, child nodes, parent node, and data
+```C++
+void print_preorder()
+```
+
+### Recursively print only data
+```C++
+void print_data()
+```
