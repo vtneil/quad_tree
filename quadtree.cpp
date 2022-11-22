@@ -4,10 +4,11 @@
 namespace qt {
     template<typename T, typename PairT, typename ContainerT>
     QuadTree<T, PairT, ContainerT>::QuadTree(Vertex center, Vertex range, unsigned int bucket_size,
-                                             unsigned int depth) {
+                                             unsigned int depth, bool sort) {
         m_root = new Node{center, range};
         max_depth = depth;
         max_bucket_size = bucket_size;
+        m_sort = sort;
     }
 
     template<typename T, typename PairT, typename ContainerT>
@@ -24,6 +25,36 @@ namespace qt {
         if (!in_region(point, m_root->bottom_left(), m_root->top_right())) return false;
 
         return insert(point, data, m_root, 0);
+    }
+
+    template<typename T, typename PairT, typename ContainerT>
+    bool QuadTree<T, PairT, ContainerT>::update(const Vertex &point, const T &data) {
+        // Bound check
+        if (!in_region(point, m_root->bottom_left(), m_root->top_right())) return false;
+
+        if (!contains(point)) {
+            return insert(point, data, m_root, 0);
+        }
+
+        std::stack<Node *> nodes;
+        nodes.push(m_root);
+        Node *top = nodes.top();
+        unsigned dir;
+
+        while (!top->leaf) {
+            dir = direction(point, top);
+            if (top->children[dir]) {
+                nodes.push(top->children[dir]);
+                top = nodes.top();
+            } else {
+                return false;
+            }
+        }
+
+        for (int i = 0; i < top->bucket.size(); ++i)
+            if (top->bucket[i].first == point)
+                top->bucket[i].second = data;
+        return false;
     }
 
     template<typename T, typename PairT, typename ContainerT>
@@ -183,17 +214,19 @@ namespace qt {
     }
 
     template<typename T, typename PairT, typename ContainerT>
-    bool QuadTree<T, PairT, ContainerT>::insert(const Vertex &v, const T &data, QuadTree::Node *&node, uint8_t depth) {
+    bool QuadTree<T, PairT, ContainerT>::insert(const Vertex &v, const T &data, QuadTree::Node *&node, unsigned depth) {
         // Insertion will not happen if insertion point's depth limit has been reached.
 
         if (node->leaf) {
             if (node->bucket.size() < max_bucket_size) {
                 // Bucket in that node is not full yet, add data to the bucket.
-                node->bucket.insert(std::lower_bound(
-                                            node->bucket.begin(),
-                                            node->bucket.end(),
-                                            PairT{v, data}, PairComp()),
-                                    PairT{v, data});
+                typename std::vector<PairT>::iterator insert_it;
+                if (m_sort)
+                    insert_it = std::lower_bound(node->bucket.begin(), node->bucket.end(),
+                                                 PairT{v, data}, PairComp());
+                else
+                    insert_it = node->bucket.end();
+                node->bucket.insert(insert_it, PairT{v, data});
                 return true;
             } else if (depth < max_depth) {
                 // Change this leaf node to stem node first
@@ -218,6 +251,7 @@ namespace qt {
     template<typename T, typename PairT, typename ContainerT>
     void QuadTree<T, PairT, ContainerT>::reduce(std::stack<Node *> &nodes) {
         bool canReduce = true;
+        typename std::vector<PairT>::iterator insert_it;
         nodes.pop();
         while (canReduce && !nodes.empty()) {
             canReduce = true;
@@ -235,11 +269,14 @@ namespace qt {
                 for (int i = 0; i < 4; ++i) {
                     if (top->children[i]) {
                         for (int j = 0; j < top->children[i]->bucket.size(); ++j) {
-                            top->bucket.insert(std::lower_bound(top->bucket.begin(),
-                                                                top->bucket.end(),
-                                                                top->children[i]->bucket[j],
-                                                                PairComp()),
-                                               top->children[i]->bucket[j]);
+                            if (m_sort)
+                                insert_it = std::lower_bound(top->bucket.begin(),
+                                                             top->bucket.end(),
+                                                             top->children[i]->bucket[j],
+                                                             PairComp());
+                            else
+                                insert_it = top->bucket.end();
+                            top->bucket.insert(insert_it, top->children[i]->bucket[j]);
                         }
                         delete top->children[i];
                         top->children[i] = nullptr;

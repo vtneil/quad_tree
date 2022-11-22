@@ -1,10 +1,6 @@
-//#include "refs/quad_tree_v0.h"
-//#include "refs/quad_tree.hpp"
-//#include "refs/ref.cpp"
 #include "quadtree.h"
 #include "vec2.h"
 #include <iostream>
-#include <vector>
 
 using std::cout;
 using std::cin;
@@ -13,15 +9,31 @@ using namespace qt;
 
 int main() {
     Vertex origin{0, 0};
-    Vertex rad{1000, 1000};
+    Vertex radius{10000, 10000};
+    unsigned bucket_size = 128; // default = 8
+    unsigned depth = 16; // default = 16
+    bool sort_points_in_node = false;
 
-    QuadTree<int> tree{origin, rad, 2};
+    QuadTree<int> tree{origin, radius, bucket_size, depth, sort_points_in_node};
 
-    for (int i = -100; i < 100; ++i) {
-        tree.insert(Vertex(i + 50, 400 - i), 2 * i);
+    for (int i = -1000; i < 1000; ++i) {
+        tree.insert(Vertex(i + 50, 400 - i), 2 * i + 9);
+//         Remove test.
+//        tree.remove(Vertex(i + 50, 400 - i));
     }
 
-    tree.print_preorder();
+//    tree.insert(Vertex(-1, -1), 0);
+//    tree.insert(Vertex(-1, 1), 1);
+//    tree.insert(Vertex(1, -1), 2);
+//    tree.insert(Vertex(1, 1), 3);
+
+    // Update and insert test.
+
+//    tree.update(Vertex(59, 391), 80);
+//    tree.insert(Vertex(59, 391), 50);
+
+    tree.print_data();
+//    tree.print_preorder();
 
     return 0;
 }

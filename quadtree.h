@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <cstddef>
-#include <array>
 #include <vector>
 #include <stack>
 #include <queue>
@@ -38,14 +37,16 @@ namespace qt {
 
         QuadTreeNode<T> *m_root;
         PairComp m_pair_comp;
-        uint8_t max_depth;
-        uint8_t max_bucket_size;
+        unsigned max_depth;
+        unsigned max_bucket_size;
+        bool m_sort;
 
     public:
         explicit QuadTree<T, PairT, ContainerT>(Vertex center = Vertex{0, 0},
                                                 Vertex range = Vertex{1, 1},
                                                 unsigned bucket_size = 1,
-                                                unsigned depth = 16);
+                                                unsigned depth = 16,
+                                                bool sort = false);
 
         ~QuadTree();
 
@@ -54,6 +55,8 @@ namespace qt {
         }
 
         bool insert(const Vertex &point, const T &data);
+
+        bool update(const Vertex &point, const T &data);
 
         bool contains(const Vertex &point);
 
@@ -68,7 +71,7 @@ namespace qt {
 
         int direction(const Vertex &point, Node *node);
 
-        bool insert(const Vertex &v, const T &data, Node *&node, uint8_t depth);
+        bool insert(const Vertex &v, const T &data, Node *&node, unsigned depth);
 
         void reduce(std::stack<Node *> &nodes);
 
@@ -78,35 +81,45 @@ namespace qt {
 
         enclosure status(const Vertex &center, const Vertex &range, const Vertex &bottom_left, const Vertex &top_right);
 
-        void print_nodes(Node *&node, unsigned int tab_size = 0) const {
+        void print_nodes(Node *&node, unsigned int depth = 0) const {
             // Print this node's address
-            for (unsigned int i = 0; i < tab_size; ++i) std::cout << "|   ";
-            std::cout << "|  Node at address " << &node << " has parent " << &(node->parent);
+            for (unsigned int i = 0; i < depth; ++i) std::cout << "|   ";
+            std::cout << "|  At depth = " << depth << ", Node at address " << &node << " has parent "
+                      << &(node->parent);
             if (node->leaf) std::cout << " (Leaf node)\n";
             else std::cout << " (Stem node)\n";
 
             // Print data in the bucket
             for (auto const &data: node->bucket) {
-                for (unsigned int i = 0; i < tab_size; ++i) std::cout << "|   ";
+                for (unsigned int i = 0; i < depth; ++i) std::cout << "|   ";
                 std::cout << "[  <*> Point " << data.first << " has data = " << data.second << '\n';
             }
 
             // Print children addresses
             if (!node->leaf) {
-                for (unsigned int i = 0; i < tab_size; ++i) std::cout << "|   ";
+                for (unsigned int i = 0; i < depth; ++i) std::cout << "|   ";
                 std::cout << "|  This node has valid children: \n";
             }
             int c = 0;
             for (Node *&child: node->children) {
                 if (child != nullptr) {
-                    for (unsigned int i = 0; i < tab_size; ++i) std::cout << "|   ";
+                    for (unsigned int i = 0; i < depth; ++i) std::cout << "|   ";
                     std::cout << "|  -> Child #" << c;
                     // Recursively print nodes and corresponding data if child is not null.
                     std::cout << '\n';
-                    print_nodes(child, 1 + tab_size);
+                    print_nodes(child, 1 + depth);
                 }
                 ++c;
             }
+        }
+
+        void print_data(Node *&node) {
+            for (auto const &data: node->bucket)
+                std::cout << "<*> Point " << data.first << " has data = " << data.second << '\n';
+
+            for (Node *&child: node->children)
+                if (child != nullptr)
+                    print_data(child);
         }
 
     public:
@@ -114,10 +127,12 @@ namespace qt {
             std::cout << "Parent node is currently broken (not valid)!\n\n";
             std::cout << "Tree root is at address " << &m_root << '\n';
             print_nodes(m_root, 0);
+            std::cout << '\n';
         }
 
         void print_data() {
-
+            print_data(m_root);
+            std::cout << '\n';
         }
     };
 }
