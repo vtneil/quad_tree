@@ -14,8 +14,8 @@ A C++ implementation of QuadTree Data Structure. Old tests and other form of imp
 ## Class constructor
 
 ```C++
-QuadTree<T, PairT, ContainerT>(Vertex center = Vertex{0, 0},
-                               Vertex range = Vertex{1, 1},
+QuadTree<T, PairT, ContainerT>(Vertex m_center = Vertex{0, 0},
+                               Vertex m_range = Vertex{1, 1},
                                unsigned bucket_size = 1,
                                unsigned depth = 16,
                                bool sort = false);
@@ -49,7 +49,7 @@ bool remove(const Vertex &point);
 std::vector<std::pair<Vertex, T>> data_in_region(const Vertex &bottom_left, const Vertex &top_right);
 ```
 
-### Recursively print nodes, child nodes, parent node, and data
+### Recursively print nodes, child nodes, m_parent node, and data
 ```C++
 void print_preorder()
 ```

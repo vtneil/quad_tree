@@ -6,9 +6,10 @@ namespace qt {
     QuadTree<T, PairT, ContainerT>::QuadTree(Vertex center, Vertex range, unsigned int bucket_size,
                                              unsigned int depth, bool sort) {
         m_root = new Node{center, range};
-        max_depth = depth;
-        max_bucket_size = bucket_size;
+        max_depth = depth > 0 ? depth : 16;
+        max_bucket_size = bucket_size > 0 ? bucket_size : 1;
         m_sort = sort;
+        m_pair_comp = PairComp();
     }
 
     template<typename T, typename PairT, typename ContainerT>
@@ -24,7 +25,7 @@ namespace qt {
         // Bound check
         if (!in_region(point, m_root->bottom_left(), m_root->top_right())) return false;
 
-        return insert(point, data, m_root, 0);
+        return insert(point, data, m_root, nullptr, 0);
     }
 
     template<typename T, typename PairT, typename ContainerT>
@@ -33,7 +34,7 @@ namespace qt {
         if (!in_region(point, m_root->bottom_left(), m_root->top_right())) return false;
 
         if (!contains(point)) {
-            return insert(point, data, m_root, 0);
+            return insert(point, data, m_root, m_root, 0);
         }
 
         std::stack<Node *> nodes;
@@ -41,19 +42,19 @@ namespace qt {
         Node *top = nodes.top();
         unsigned dir;
 
-        while (!top->leaf) {
+        while (!top->m_leaf) {
             dir = direction(point, top);
-            if (top->children[dir]) {
-                nodes.push(top->children[dir]);
+            if (top->m_children[dir]) {
+                nodes.push(top->m_children[dir]);
                 top = nodes.top();
             } else {
                 return false;
             }
         }
 
-        for (int i = 0; i < top->bucket.size(); ++i)
-            if (top->bucket[i].first == point)
-                top->bucket[i].second = data;
+        for (int i = 0; i < top->m_bucket.size(); ++i)
+            if (top->m_bucket[i].first == point)
+                top->m_bucket[i].second = data;
         return false;
     }
 
@@ -65,10 +66,10 @@ namespace qt {
         unsigned dir;
 
         // Find appropriate node (non-recursive loop)
-        while (!top->leaf) {
+        while (!top->m_leaf) {
             dir = direction(point, top);
-            if (top->children[dir]) {
-                nodes.push(top->children[dir]);
+            if (top->m_children[dir]) {
+                nodes.push(top->m_children[dir]);
                 top = nodes.top();
             } else {
                 return false;
@@ -76,8 +77,8 @@ namespace qt {
         }
 
         // Find that point.
-        for (int i = 0; i < top->bucket.size(); ++i)
-            if (top->bucket[i].first == point)
+        for (int i = 0; i < top->m_bucket.size(); ++i)
+            if (top->m_bucket[i].first == point)
                 return true;
         return false;
     }
@@ -90,10 +91,10 @@ namespace qt {
         unsigned dir;
 
         // Find appropriate node (non-recursive loop)
-        while (!top->leaf) {
+        while (!top->m_leaf) {
             dir = direction(point, top);
-            if (top->children[dir]) {
-                nodes.push(top->children[dir]);
+            if (top->m_children[dir]) {
+                nodes.push(top->m_children[dir]);
                 top = nodes.top();
             } else {
                 return false;
@@ -101,9 +102,9 @@ namespace qt {
         }
 
         // Find that point and delete nodes.
-        for (int i = 0; i < top->bucket.size(); ++i) {
-            if (top->bucket[i].first == point) {
-                top->bucket.erase(top->bucket.begin() + i);
+        for (int i = 0; i < top->m_bucket.size(); ++i) {
+            if (top->m_bucket[i].first == point) {
+                top->m_bucket.erase(top->m_bucket.begin() + i);
                 reduce(nodes);
                 return true;
             }
@@ -122,37 +123,38 @@ namespace qt {
             Node *top = nodes.front();
 
             // Leaf node
-            if (top->leaf) {
-                enclosure status = this->status(top->center, top->range, bottom_left, top_right);
+            if (top->m_leaf) {
+                enclosure status = this->status(top->m_center, top->m_range, bottom_left, top_right);
                 switch (status) {
                     case IN_BOUND:
-                        results.insert(results.end(), top->bucket.begin(), top->bucket.end());
+                        results.insert(results.end(), top->m_bucket.begin(), top->m_bucket.end());
                         break;
 
                     case PARTIAL_BOUND:
-                        for (int i = 0; i < top->bucket.size(); ++i)
-                            if (in_region(top->bucket[i].first, bottom_left, top_right))
-                                results.insert(results.end(), top->bucket[i]);
+                        for (int i = 0; i < top->m_bucket.size(); ++i)
+                            if (in_region(top->m_bucket[i].first, bottom_left, top_right))
+                                results.insert(results.end(), top->m_bucket[i]);
                         break;
 
                     default:
                         break;
                 }
+                nodes.pop();
                 continue;
             }
 
             // Stem node
             for (int i = 0; i < 4; ++i) {
-                if (top->child[i] == nullptr) continue;
-                enclosure status = this->status(top->child[i]->center, top->child[i]->range,
+                if (top->m_children[i] == nullptr) continue;
+                enclosure status = this->status(top->m_children[i]->m_center, top->m_children[i]->m_range,
                                                 bottom_left, top_right);
                 switch (status) {
                     case IN_BOUND:
-                        add_points_to_result(top->child[i], results);
+                        add_points_to_result(top->m_children[i], results);
                         break;
 
                     case PARTIAL_BOUND:
-                        nodes.push(top->child[i]);
+                        nodes.push(top->m_children[i]);
                         break;
 
                     default:
@@ -166,21 +168,21 @@ namespace qt {
 
     template<typename T, typename PairT, typename ContainerT>
     Vertex QuadTree<T, PairT, ContainerT>::new_center(int direction, QuadTree::Node *node) {
-        Vertex v(node->center.x, node->center.y);
+        Vertex v(node->m_center.x, node->m_center.y);
         switch (direction) {
             case BOT_LEFT:
-                v -= node->range / 2.0;
+                v -= node->m_range / 2.0;
                 break;
             case TOP_LEFT:
-                v.x -= node->range.x / 2.0;
-                v.y += node->range.y / 2.0;
+                v.x -= node->m_range.x / 2.0;
+                v.y += node->m_range.y / 2.0;
                 break;
             case BOT_RIGHT:
-                v.x += node->range.x / 2.0;
-                v.y -= node->range.y / 2.0;
+                v.x += node->m_range.x / 2.0;
+                v.y -= node->m_range.y / 2.0;
                 break;
             case TOP_RIGHT:
-                v += node->range / 2.0;
+                v += node->m_range / 2.0;
                 break;
             default:
                 break;
@@ -192,58 +194,61 @@ namespace qt {
     int QuadTree<T, PairT, ContainerT>::direction(const Vertex &point, QuadTree::Node *node) {
         unsigned X = 0;
         unsigned Y = 0;
-        X |= ((point.x >= node->center.x) << 1);
-        Y |= ((point.y >= node->center.y) << 0);
+        X |= ((point.x >= node->m_center.x) << 1);
+        Y |= ((point.y >= node->m_center.y) << 0);
         return (int) (X | Y);
     }
 
     template<typename T, typename PairT, typename ContainerT>
-    QuadTreeNode<T, PairT, ContainerT> *&
-    QuadTree<T, PairT, ContainerT>::child_node(const Vertex &v, QuadTree::Node *&node) {
+    QuadTreeNode<T, PairT, ContainerT> *&QuadTree<T, PairT, ContainerT>::child_node(const Vertex &v,
+                                                                                    QuadTree::Node *&node) {
         unsigned dir = direction(v, node);
-        if (node->children[dir] != nullptr) {
+        if (node->m_children[dir] != nullptr) {
             // Child node already exists, return that child node.
-            node->children[dir]->parent = m_root;
-            return node->children[dir];
+            return node->m_children[dir];
         } else {
             // Child node doesn't exist, create new one and return it.
-            node->children[dir] = new Node(new_center(dir, node), node->range / 2.0);
-            node->children[dir]->parent = m_root;
-            return node->children[dir];
+            node->m_children[dir] = new Node(new_center(dir, node), node->m_range / 2.0);
+            return node->m_children[dir];
         }
     }
 
     template<typename T, typename PairT, typename ContainerT>
-    bool QuadTree<T, PairT, ContainerT>::insert(const Vertex &v, const T &data, QuadTree::Node *&node, unsigned depth) {
+    bool QuadTree<T, PairT, ContainerT>::insert(const Vertex &v, const T &data,
+                                                QuadTree::Node *&node, QuadTree::Node *parent_node,
+                                                unsigned depth) {
         // Insertion will not happen if insertion point's depth limit has been reached.
 
-        if (node->leaf) {
-            if (node->bucket.size() < max_bucket_size) {
-                // Bucket in that node is not full yet, add data to the bucket.
+        // Insert only when the node is a m_leaf node
+        if (node->m_leaf) {
+            if (node->m_bucket.size() < max_bucket_size) {
+                // Bucket in that node is not full yet, add data to the m_bucket.
                 typename std::vector<PairT>::iterator insert_it;
                 if (m_sort)
-                    insert_it = std::lower_bound(node->bucket.begin(), node->bucket.end(),
-                                                 PairT{v, data}, PairComp());
+                    insert_it = std::lower_bound(node->m_bucket.begin(), node->m_bucket.end(),
+                                                 PairT{v, data}, m_pair_comp);
                 else
-                    insert_it = node->bucket.end();
-                node->bucket.insert(insert_it, PairT{v, data});
+                    insert_it = node->m_bucket.end();
+                node->set_parent(parent_node);
+                node->m_bucket.insert(insert_it, PairT{v, data});
                 return true;
             } else if (depth < max_depth) {
-                // Change this leaf node to stem node first
-                node->leaf = false;
-                insert(v, data, child_node(v, node), 1 + depth);
+                // Change this m_leaf node to stem node first
+                node->m_leaf = false;
+                insert(v, data, child_node(v, node), node, 1 + depth);
 
                 // Pull out data from this node and put it in corresponding child
-                for (int i = 0; i < node->bucket.size(); ++i) {
-                    insert(node->bucket[i].first,
-                           node->bucket[i].second,
-                           child_node(node->bucket[i].first, node),
+                for (int i = 0; i < node->m_bucket.size(); ++i) {
+                    insert(node->m_bucket[i].first,
+                           node->m_bucket[i].second,
+                           child_node(node->m_bucket[i].first, node),
+                           node,
                            1 + depth);
                 }
-                node->bucket.clear();
+                node->m_bucket.clear();
             }
         } else {
-            insert(v, data, child_node(v, node), 1 + depth);
+            insert(v, data, child_node(v, node), node, 1 + depth);
         }
         return false;
     }
@@ -258,31 +263,32 @@ namespace qt {
             Node *top = nodes.top();
             int numKeys = 0;
             for (int i = 0; i < 4; ++i) {
-                if (top->children[i] && !top->children[i]->leaf) {
+                if (top->m_children[i] && !top->m_children[i]->m_leaf) {
                     return;
-                } else if (top->children[i] && top->children[i]->leaf) {
-                    numKeys += top->children[i]->bucket.size();
+                } else if (top->m_children[i] && top->m_children[i]->m_leaf) {
+                    numKeys += top->m_children[i]->m_bucket.size();
                 }
             }
             canReduce &= (numKeys <= max_bucket_size);
             if (canReduce) {
                 for (int i = 0; i < 4; ++i) {
-                    if (top->children[i]) {
-                        for (int j = 0; j < top->children[i]->bucket.size(); ++j) {
+                    if (top->m_children[i]) {
+                        top->m_children[i]->set_parent(top);
+                        for (int j = 0; j < top->m_children[i]->m_bucket.size(); ++j) {
                             if (m_sort)
-                                insert_it = std::lower_bound(top->bucket.begin(),
-                                                             top->bucket.end(),
-                                                             top->children[i]->bucket[j],
-                                                             PairComp());
+                                insert_it = std::lower_bound(top->m_bucket.begin(),
+                                                             top->m_bucket.end(),
+                                                             top->m_children[i]->m_bucket[j],
+                                                             m_pair_comp);
                             else
-                                insert_it = top->bucket.end();
-                            top->bucket.insert(insert_it, top->children[i]->bucket[j]);
+                                insert_it = top->m_bucket.end();
+                            top->m_bucket.insert(insert_it, top->m_children[i]->m_bucket[j]);
                         }
-                        delete top->children[i];
-                        top->children[i] = nullptr;
+                        delete top->m_children[i];
+                        top->m_children[i] = nullptr;
                     }
                 }
-                top->leaf = true;
+                top->m_leaf = true;
             }
             nodes.pop();
         }
@@ -291,13 +297,13 @@ namespace qt {
     template<typename T, typename PairT, typename ContainerT>
     void QuadTree<T, PairT, ContainerT>::add_points_to_result(QuadTree::Node *node,
                                                               std::vector<std::pair<Vertex, T>> &results) {
-        if (node->leaf) {
-            results.insert(results.end(), node->bucket.begin(), node->bucket.end());
+        if (node->m_leaf) {
+            results.insert(results.end(), node->m_bucket.begin(), node->m_bucket.end());
             return;
         }
         for (int i = 0; i < 4; ++i) {
-            if (node->child[i]) {
-                add_points_to_result(node->child[i], results);
+            if (node->m_children[i] != nullptr) {
+                add_points_to_result(node->m_children[i], results);
             }
         }
     }
@@ -337,6 +343,11 @@ namespace qt {
             return PARTIAL_BOUND;
 
         return OUT_OF_BOUND;
+    }
+
+    template<typename T, typename PairT, typename ContainerT>
+    std::vector<std::pair<Vertex, T>> QuadTree<T, PairT, ContainerT>::extract_all() {
+        return data_in_region(m_root->m_center - m_root->m_range, m_root->m_center + m_root->m_range);
     }
 }
 
