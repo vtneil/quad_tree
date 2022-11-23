@@ -44,6 +44,11 @@ bool contains(const Vertex &point);
 bool remove(const Vertex &point);
 ```
 
+### Get all data in every region
+```C++
+std::vector<std::pair<Vertex, T>> extract();
+```
+
 ### Get data in specified region
 ```C++
 std::vector<std::pair<Vertex, T>> data_in_region(const Vertex &bottom_left, const Vertex &top_right);
