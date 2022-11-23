@@ -35,6 +35,8 @@ namespace qt {
 
         class PairComp;
 
+        class TreeNodeIterator;
+
         class TreeIterator;
 
         QuadTreeNode<T> *m_root;
@@ -42,8 +44,10 @@ namespace qt {
         unsigned max_depth;
         unsigned max_bucket_size;
         bool m_sort;
+        size_t m_size;
 
     public:
+        typedef TreeNodeIterator viterator;
         typedef TreeIterator iterator;
 
         explicit QuadTree<T, PairT, ContainerT>(Vertex center = Vertex{0, 0},
@@ -58,6 +62,10 @@ namespace qt {
             return m_root;
         }
 
+        size_t size() const {
+            return m_size;
+        }
+
         bool insert(const Vertex &point, const T &data);
 
         bool update(const Vertex &point, const T &data);
@@ -69,6 +77,16 @@ namespace qt {
         std::vector<std::pair<Vertex, T>> data_in_region(const Vertex &bottom_left, const Vertex &top_right);
 
         std::vector<std::pair<Vertex, T>> extract_all();
+
+        viterator vbegin();
+
+        viterator vend();
+
+        iterator begin();
+
+        iterator end();
+
+        void data_in_subtrees(Node *node);
 
     private:
         Node *&child_node(const Vertex &v, Node *&node);
@@ -87,48 +105,15 @@ namespace qt {
 
         enclosure status(const Vertex &center, const Vertex &range, const Vertex &bottom_left, const Vertex &top_right);
 
-        void print_nodes(Node *&node, unsigned int depth = 0) const {
-            // Print this node's address
-            for (unsigned int i = 0; i < depth; ++i) std::cout << "|   ";
-            printf("|  At depth = %d, Node at address %p has m_parent %p\n", depth, node, node->m_parent);
-            if (node->m_leaf) printf(" (Leaf node)\n");
-            else printf(" (Stem node)\n");
+        void print_nodes(Node *&node, unsigned int depth = 0);
 
-            // Print data in the m_bucket
-            for (auto const &data: node->m_bucket) {
-                for (unsigned int i = 0; i < depth; ++i) std::cout << "|   ";
-                std::cout << "[  <*> Point " << data.first << " has data = " << data.second << '\n';
-            }
+        void print_data(Node *&node);
 
-            // Print m_children addresses
-            if (!node->m_leaf) {
-                for (unsigned int i = 0; i < depth; ++i) std::cout << "|   ";
-                printf("|  This node has valid m_children: \n");
-            }
-            int c = 0;
-            for (Node *&child: node->m_children) {
-                if (child != nullptr) {
-                    for (unsigned int i = 0; i < depth; ++i) std::cout << "|   ";
-                    printf("|  -> Child #%d", c);
-                    // Recursively print nodes and corresponding data if child is not null.
-                    printf("\n");
-                    print_nodes(child, 1 + depth);
-                }
-                ++c;
-            }
-        }
-
-        void print_data(Node *&node) {
-            for (auto const &data: node->m_bucket)
-                std::cout << "<*> Point " << data.first << " has data = " << data.second << '\n';
-
-            for (Node *&child: node->m_children)
-                if (child != nullptr)
-                    print_data(child);
-        }
+        void traverse(Node *node, std::queue<Node *> &nodes);
 
     public:
         void print_preorder() {
+            std::cout << "Tree size is " << m_size << '\n';
             printf("Tree root is at address %p\n", m_root);
             print_nodes(m_root, 0);
             printf("\n");
@@ -136,7 +121,7 @@ namespace qt {
 
         void print_data() {
             print_data(m_root);
-            iterator it{m_root};
+            viterator it{m_root};
             ++it;
             printf("\n");
         }
@@ -150,6 +135,57 @@ namespace qt {
         }
     };
 
+    template<typename T, typename PairT, typename ContainerT>
+    class QuadTree<T, PairT, ContainerT>::TreeNodeIterator {
+        friend class QuadTree;
+
+    protected:
+        Node *node;
+    public:
+        TreeNodeIterator() : node(nullptr) {}
+
+        explicit TreeNodeIterator(Node *node) : node{node} {}
+
+        TreeNodeIterator &operator++() {
+            // Use stack tree traversal method here.
+            return *this;
+        }
+
+        TreeNodeIterator &operator--() {
+            // Use stack tree traversal method here.
+            return *this;
+        }
+
+        TreeNodeIterator operator++(int) {
+            TreeNodeIterator tmp(this);
+            operator++();
+            return tmp;
+        }
+
+        TreeNodeIterator operator--(int) {
+            TreeNodeIterator tmp(this);
+            operator--();
+            return tmp;
+        }
+
+        ContainerT &operator*() {
+            return node->m_bucket;
+        }
+
+        ContainerT *operator->() {
+            return &(node->m_bucket);
+        }
+
+        bool operator==(const TreeNodeIterator &other) const {
+            return node == other.node;
+        }
+
+        bool operator!=(const TreeNodeIterator &other) const {
+            return node != other.node;
+        }
+    };
+
+    // Must fix all of this below!!!
     template<typename T, typename PairT, typename ContainerT>
     class QuadTree<T, PairT, ContainerT>::TreeIterator {
         friend class QuadTree;
@@ -183,16 +219,16 @@ namespace qt {
             return tmp;
         }
 
-        ContainerT &operator*() {
-            return node->m_bucket;
+        PairT &operator*() {
+            return PairT();
         }
 
-        ContainerT *operator->() {
-            return &(node->m_bucket);
+        PairT *operator->() {
+            return &(new PairT());
         }
 
         bool operator==(const TreeIterator &other) const {
-            return node == other.node;
+            return node->m_bucket == other.node->m_bucket;
         }
 
         bool operator!=(const TreeIterator &other) const {
