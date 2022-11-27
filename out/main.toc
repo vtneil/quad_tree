@@ -1,0 +1,3 @@
+\selectlanguage *{thai}
+\contentsline {section}{\numberline {1}บทนำ}{1}{}%
+\contentsline {section}{\numberline {2}โครงสร้างข้อมูลแบบ Space-based Partitioning}{1}{}%

@@ -1,7 +1,8 @@
-
 #include "quadtree.h"
 
 namespace qt {
+    // Constructor
+
     template<typename T, typename PairT, typename ContainerT>
     QuadTree<T, PairT, ContainerT>::QuadTree(Vertex center, Vertex range, unsigned int bucket_size,
                                              unsigned int depth, bool sort) {
@@ -13,24 +14,31 @@ namespace qt {
         m_size = 0;
     }
 
+    // Destructor
+
     template<typename T, typename PairT, typename ContainerT>
     QuadTree<T, PairT, ContainerT>::~QuadTree() {
         delete m_root;
     }
 
+    // Class member functions
+
     template<typename T, typename PairT, typename ContainerT>
-    bool QuadTree<T, PairT, ContainerT>::insert(const Vertex &point, const T &data) {
-        // Duplicates check
-        if (contains(point)) return false;
-
+    std::pair<typename QuadTree<T, PairT, ContainerT>::viterator, bool> QuadTree<T, PairT, ContainerT>::insert(
+            const Vertex &point, const T &data) {
         // Bound check
-        if (!in_region(point, m_root->bottom_left(), m_root->top_right())) return false;
+        if (!in_region(point, m_root->bottom_left(), m_root->top_right())) return {};
 
-        if (insert(point, data, m_root, nullptr, 0)) {
+        // Duplicates check
+        if (contains(point)) return {};
+
+        auto pit = insert(point, data, m_root, nullptr, 0);
+
+        if (pit.second) {
             ++m_size;
-            return true;
+            return pit;
         }
-        return false;
+        return {};
     }
 
     template<typename T, typename PairT, typename ContainerT>
@@ -226,47 +234,49 @@ namespace qt {
     }
 
     template<typename T, typename PairT, typename ContainerT>
-    bool QuadTree<T, PairT, ContainerT>::insert(const Vertex &v, const T &data,
-                                                QuadTree::Node *&node, QuadTree::Node *parent_node,
-                                                unsigned depth) {
+    std::pair<typename QuadTree<T, PairT, ContainerT>::viterator, bool> QuadTree<T, PairT, ContainerT>::insert(
+            const Vertex &v, const T &data,
+            QuadTree::Node *&node, QuadTree::Node *parent_node,
+            unsigned depth) {
+        std::pair<QuadTree<T, PairT, ContainerT>::viterator, bool> pit;
         // Insertion will not happen if insertion point's depth limit has been reached.
 
         // Insert only when the node is a leaf node
         if (node->m_leaf) {
             if (node->m_bucket.size() < max_bucket_size) {
                 // Bucket in that node is not full yet, add data to the m_bucket.
+                pit = {viterator(node), true};
                 typename std::vector<PairT>::iterator insert_it;
                 if (m_sort) {
                     insert_it = std::lower_bound(node->m_bucket.begin(), node->m_bucket.end(),
                                                  PairT{v, data}, m_pair_comp);
-                }
-                else {
+                } else {
                     insert_it = node->m_bucket.end();
                 }
                 node->set_parent(parent_node);
                 node->m_bucket.insert(insert_it, PairT{v, data});
-                return true;
+                return pit;
             } else if (depth < max_depth) {
                 // Change this m_leaf node to stem node first
                 node->m_leaf = false;
-                insert(v, data, child_node(v, node), node, 1 + depth);
+                pit = insert(v, data, child_node(v, node), node, 1 + depth);
 
                 // Pull out data from this node and put it in corresponding child
                 for (int i = 0; i < node->m_bucket.size(); ++i) {
-                    insert(node->m_bucket[i].first,
-                           node->m_bucket[i].second,
-                           child_node(node->m_bucket[i].first, node),
-                           node,
-                           1 + depth);
+                    pit = insert(node->m_bucket[i].first,
+                                 node->m_bucket[i].second,
+                                 child_node(node->m_bucket[i].first, node),
+                                 node,
+                                 1 + depth);
                 }
                 node->m_bucket.clear();
-                return true;
+                return pit;
             }
         } else {
-            insert(v, data, child_node(v, node), node, 1 + depth);
-            return true;
+            pit = insert(v, data, child_node(v, node), node, 1 + depth);
+            return pit;
         }
-        return false;
+        return {};
     }
 
     template<typename T, typename PairT, typename ContainerT>
@@ -366,6 +376,8 @@ namespace qt {
         return data_in_region(m_root->m_center - m_root->m_range, m_root->m_center + m_root->m_range);
     }
 
+    // Printing data
+
     template<typename T, typename PairT, typename ContainerT>
     void QuadTree<T, PairT, ContainerT>::print_nodes(Node *&node, unsigned int depth) {
         // Print this node's address
@@ -435,6 +447,8 @@ namespace qt {
                 std::cout << "<*> Point " << data.first << " has data = " << data.second << '\n';
         }
     }
+
+    // Iterator
 
     template<typename T, typename PairT, typename ContainerT>
     typename QuadTree<T, PairT, ContainerT>::viterator QuadTree<T, PairT, ContainerT>::vbegin() {

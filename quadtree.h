@@ -66,7 +66,7 @@ namespace qt {
             return m_size;
         }
 
-        bool insert(const Vertex &point, const T &data);
+        std::pair<viterator, bool> insert(const Vertex &point, const T &data);
 
         bool update(const Vertex &point, const T &data);
 
@@ -95,7 +95,7 @@ namespace qt {
 
         int direction(const Vertex &point, Node *node);
 
-        bool insert(const Vertex &v, const T &data, Node *&node, QuadTree::Node *parent_node, unsigned depth);
+        std::pair<viterator, bool> insert(const Vertex &v, const T &data, Node *&node, QuadTree::Node *parent_node, unsigned depth);
 
         void reduce(std::stack<Node *> &nodes);
 
@@ -124,6 +124,13 @@ namespace qt {
             viterator it{m_root};
             ++it;
             printf("\n");
+        }
+
+        void print_bucket(const ContainerT &bucket) {
+            for (auto it = bucket.begin(); it != bucket.end(); ++it) {
+                std::cout << it->first << " = " << it->second << "; ";
+            }
+            std::cout << '\n';
         }
     };
 
