@@ -2,6 +2,10 @@
 
 A C++ implementation of QuadTree Data Structure. Old tests and other form of implementations (less performance) can be found in "refs" directory.
 
+**Please see `.cpp` and `.h` file for latest updates and more information as README might not be up to date.**
+
+*Quadtree Iterator is not yet implemented*
+
 ## Class templates
 `T` is a data type;
 
