@@ -1,8 +1,10 @@
 % Preamble
-\documentclass[12pt, thai, a4paper, notitlepage, twocolumn]{article}
+\documentclass[10.5pt, thai, a4paper, notitlepage, twocolumn]{article}
 
 % Packages
 \usepackage[top=2cm,left=2.5cm,right=2.5cm,bottom=3cm]{geometry}
+\usepackage{flushend}
+\usepackage[none]{hyphenat}
 \usepackage{titlesec}
 \usepackage{multicol}
 \usepackage{lineno}
@@ -10,23 +12,27 @@
 \usepackage{fontspec}
 \usepackage{polyglossia}
 \usepackage{amsfonts, amsmath, ragged2e}
+\usepackage{lipsum}
 
 \setdefaultlanguage{thai}
 \setotherlanguages{english}
 \setmainfont[script=thai]{Laksaman}
 \setmonofont{Consolas}
-\newfontfamily\thaifonttt{Tlwg Typist:script=thai}
 \XeTeXlinebreaklocale "th"
+
+\renewcommand\thesection{\arabic{section}.}
+\renewcommand\thesubsection{\thesection\arabic{subsection}.}
 
 \justifying
 \titleformat{\section}{\normalfont \bfseries \raggedright}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalfont \itshape \raggedright}{\thesubsection}{1em}{}
 
-\title{\fontsize{16pt}{16pt} \textbf{โครงสร้างข้อมูล QuadTree และการประยุกต์ใช้งาน}}
+\title{\fontsize{14pt}{14pt} \textbf{โครงสร้างข้อมูล Quadtree และการประยุกต์ใช้งาน}}
 \author{
     \begin{tabular}{r l}
-        \small วิวรรษธร ฐิตสิริวิทย์ & \small 6432158421 \\
         \small <name2>               & \small <id2>      \\
-        \small <name3>               & \small <id3>
+        \small <name3>               & \small <id3>      \\
+        \small วิวรรษธร ฐิตสิริวิทย์ & \small 6432158421
     \end{tabular}
 }
 
@@ -41,11 +47,18 @@
     \section{บทนำ} \label{sec:introduction}
 
 
-    \section{โครงสร้างข้อมูลแบบ Space-based Partitioning} \label{sec:spacepart}
+    \section{โครงสร้างข้อมูล Space Partitioning Tree} \label{sec:spacepart}
 
 
-    \section{}
+    \section{รูปแบบการเก็บข้อมูลของ Quadtree} \label{sec:data}
 
+
+    \section{การประยุกต์ใช้งาน Quadtree} \label{sec:app}
+
+    \subsection{การตรวจสอบการชนบนระนาบ} \label{subsec:collision}
+
+
+    \clearpage
 
     \section{บรรณานุกรม} \label{sec:bib}
 
