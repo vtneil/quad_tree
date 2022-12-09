@@ -1,5 +1,5 @@
 % Preamble
-\documentclass[10.5pt, thai, a4paper, notitlepage, twocolumn]{article}
+\documentclass[10.5pt, thai, a4paper, notitlepage]{article}
 
 % Packages
 \usepackage[top=2cm,left=2.5cm,right=2.5cm,bottom=3cm]{geometry}
@@ -13,9 +13,10 @@
 \usepackage{polyglossia}
 \usepackage{amsfonts, amsmath, ragged2e}
 \usepackage{lipsum}
+\usepackage{tikz}
 
-\setdefaultlanguage{thai}
-\setotherlanguages{english}
+\setdefaultlanguage{english}
+\setotherlanguages{thai}
 \setmainfont[script=thai]{Laksaman}
 \setmonofont{Consolas}
 \XeTeXlinebreaklocale "th"
@@ -30,8 +31,8 @@
 \title{\fontsize{14pt}{14pt} \textbf{โครงสร้างข้อมูล Quadtree และการประยุกต์ใช้งาน}}
 \author{
     \begin{tabular}{r l}
-        \small <name2>               & \small <id2>      \\
-        \small <name3>               & \small <id3>      \\
+        \small ธีรินท์ เพ็ชร์รัตน์   & \small 6430185021 \\
+        \small พิพรรธ จงพิพัฒน์ชัย   & \small 6431333721 \\
         \small วิวรรษธร ฐิตสิริวิทย์ & \small 6432158421
     \end{tabular}
 }
@@ -52,6 +53,10 @@
 
     \section{รูปแบบการเก็บข้อมูลของ Quadtree} \label{sec:data}
 
+    \begin{center}
+        \input{tree_graphics}
+    \end{center}
+
 
     \section{การประยุกต์ใช้งาน Quadtree} \label{sec:app}
 
@@ -59,6 +64,7 @@
 
 
     \clearpage
+
 
     \section{บรรณานุกรม} \label{sec:bib}
 

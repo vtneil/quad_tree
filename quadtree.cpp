@@ -18,7 +18,7 @@ namespace qt {
 
     template<typename T, typename PairT, typename ContainerT>
     QuadTree<T, PairT, ContainerT>::~QuadTree() {
-        delete m_root;
+        delete_children(m_root);
     }
 
     // Class member functions
@@ -410,6 +410,7 @@ namespace qt {
         }
     }
 
+
     template<typename T, typename PairT, typename ContainerT>
     void QuadTree<T, PairT, ContainerT>::print_data(Node *&node) {
         if (node == nullptr) return;
@@ -424,13 +425,11 @@ namespace qt {
 
     template<typename T, typename PairT, typename ContainerT>
     void QuadTree<T, PairT, ContainerT>::traverse(QuadTree::Node *node, std::queue<Node *> &nodes) {
-        {
-            if (node == nullptr) return;
-            nodes.push(node);
-            for (Node *&child: node->m_children)
-                if (child != nullptr)
-                    traverse(child, nodes);
-        }
+        if (node == nullptr) return;
+        nodes.push(node);
+        for (Node *&child: node->m_children)
+            if (child != nullptr)
+                traverse(child, nodes);
     }
 
     template<typename T, typename PairT, typename ContainerT>
@@ -446,6 +445,36 @@ namespace qt {
             for (auto const &data: top->m_bucket)
                 std::cout << "<*> Point " << data.first << " has data = " << data.second << '\n';
         }
+    }
+
+    // Element access
+
+    template<typename T, typename PairT, typename ContainerT>
+    T *QuadTree<T, PairT, ContainerT>::at(long double x, long double y) {
+        return at(Vertex(x, y));
+    }
+
+    template<typename T, typename PairT, typename ContainerT>
+    T *QuadTree<T, PairT, ContainerT>::at(const Vertex &point) {
+        std::stack<Node *> nodes;
+        nodes.push(m_root);
+        Node *top = nodes.top();
+        unsigned dir;
+
+        while (!top->m_leaf) {
+            dir = direction(point, top);
+            if (top->m_children[dir] != nullptr) {
+                nodes.push(top->m_children[dir]);
+                top = nodes.top();
+            } else {
+                return nullptr;
+            }
+        }
+
+        for (int i = 0; i < top->m_bucket.size(); ++i)
+            if (top->m_bucket[i].first == point)
+                return &top->m_bucket[i].second;
+        return nullptr;
     }
 
     // Iterator

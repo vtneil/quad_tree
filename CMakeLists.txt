@@ -5,3 +5,5 @@ set(CMAKE_CXX_STANDARD 11)
 
 add_executable(main main.cpp)
 add_executable(test test.cpp)
+
+add_executable(bench_fill_tree bench_fill_tree.cpp)

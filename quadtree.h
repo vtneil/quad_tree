@@ -66,6 +66,10 @@ namespace qt {
             return m_size;
         }
 
+        T *at(const Vertex &point);
+
+        T *at(long double x, long double y);
+
         std::pair<viterator, bool> insert(const Vertex &point, const T &data);
 
         bool update(const Vertex &point, const T &data);
@@ -89,27 +93,39 @@ namespace qt {
         void data_in_subtrees(Node *node);
 
     private:
-        Node *&child_node(const Vertex &v, Node *&node);
+        static Node *&child_node(const Vertex &v, Node *&node);
 
-        Vertex new_center(int direction, Node *node);
+        static Vertex new_center(int direction, Node *node);
 
-        int direction(const Vertex &point, Node *node);
+        static int direction(const Vertex &point, Node *node);
 
-        std::pair<viterator, bool> insert(const Vertex &v, const T &data, Node *&node, QuadTree::Node *parent_node, unsigned depth);
+        std::pair<viterator, bool>
+        insert(const Vertex &v, const T &data, Node *&node, QuadTree::Node *parent_node, unsigned depth);
 
         void reduce(std::stack<Node *> &nodes);
 
         void add_points_to_result(Node *node, std::vector<std::pair<Vertex, T>> &results);
 
-        bool in_region(const Vertex &point, const Vertex &bottom_left, const Vertex &top_right);
+        static bool in_region(const Vertex &point, const Vertex &bottom_left, const Vertex &top_right);
 
-        enclosure status(const Vertex &center, const Vertex &range, const Vertex &bottom_left, const Vertex &top_right);
+        static enclosure status(const Vertex &center, const Vertex &range,
+                                const Vertex &bottom_left, const Vertex &top_right);
 
-        void print_nodes(Node *&node, unsigned int depth = 0);
+        static void print_nodes(Node *&node, unsigned int depth = 0);
 
-        void print_data(Node *&node);
+        static void print_data(Node *&node);
 
-        void traverse(Node *node, std::queue<Node *> &nodes);
+        static void traverse(Node *node, std::queue<Node *> &nodes);
+
+        void delete_children(Node *&node) {
+            if (node == nullptr) return;
+
+            for (Node *&child: node->m_children) {
+                if (child != nullptr)
+                    delete_children(child);
+                delete child;
+            }
+        }
 
     public:
         void print_preorder() {

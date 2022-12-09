@@ -1,15 +1,9 @@
-%! Author = vivatsathornthitasirivit
-%! Date = 27/11/2022 AD
-
-% Preamble
-\documentclass[11pt]{article}
-
-% Packages
-\usepackage{amsmath}
-
-% Document
-\begin{document}
-
-
-
-\end{document}
+\begin{tikzpicture}
+    \node[circle, draw] {$Parent$}
+    child {node[circle, draw] {Node}
+    child {node[circle, draw] {SW}}
+    child {node[circle, draw] {NW}}
+    child {node[circle, draw] {NE}}
+    child {node[circle, draw] {SE}}
+    }
+\end{tikzpicture}
